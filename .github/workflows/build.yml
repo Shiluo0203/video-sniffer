@@ -48,12 +48,15 @@ jobs:
           ANDROID_API=24
           NDK_ROOT="$ANDROID_SDK_ROOT/ndk/27.0.12077973"
           TOOLCHAIN="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64"
-          export CC="$TOOLCHAIN/bin/aarch64-linux-android${ANDROID_API}-clang"
-          export CXX="$TOOLCHAIN/bin/aarch64-linux-android${ANDROID_API}-clang++"
-          export STRIP="$TOOLCHAIN/bin/llvm-strip"
-          export AR="$TOOLCHAIN/bin/llvm-ar"
-          export RANLIB="$TOOLCHAIN/bin/llvm-ranlib"
+          export PATH="$TOOLCHAIN/bin:$PATH"
+          export CC="aarch64-linux-android${ANDROID_API}-clang"
+          export CXX="aarch64-linux-android${ANDROID_API}-clang++"
+          export STRIP="llvm-strip"
+          export AR="llvm-ar"
+          export RANLIB="llvm-ranlib"
           export PKG_CONFIG=""
+          export NM="llvm-nm"
+          export AS="llvm-as"
 
           cd /tmp
           curl -fsSL -o ffmpeg.tar.xz "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VER}.tar.xz"
@@ -65,7 +68,6 @@ jobs:
             --arch=arm64 \
             --cpu=armv8-a \
             --enable-cross-compile \
-            --cross-prefix=aarch64-linux-android- \
             --sysroot="$TOOLCHAIN/sysroot" \
             --prefix=/tmp/ffmpeg-install \
             --enable-static \
