@@ -7,7 +7,7 @@ on:
       - 'android_app/**'
       - 'core/**'
       - '.github/workflows/build.yml'
-  workflow_dispatch:        # 支持手动触发
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,7 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Chaquopy 需要 commit 历史判断 license
           fetch-depth: 0
 
       - name: Set up JDK 17
@@ -28,10 +27,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
+      - name: Set up Android SDK + NDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0 ndk;27.0.12077973'
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -42,27 +41,64 @@ jobs:
           key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-
 
-      - name: Download ffmpeg for Android (arm64)
+      - name: Build ffmpeg for Android arm64 from source
         run: |
-          mkdir -p app/src/main/assets
-          # BtbN 自动构建：ffmpeg-master-android-clang-aarch64
-          # 静态链接，单文件，约 70MB
-          curl -fsSL -o /tmp/ffmpeg.tar.xz \
-            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-android-clang-aarch64.tar.xz"
-          tar -xJf /tmp/ffmpeg.tar.xz -C /tmp
-          # 找到 ffmpeg 二进制（路径形如 ffmpeg-master-.../bin/ffmpeg）
-          FFMPEG_BIN=$(find /tmp -name ffmpeg -type f | head -1)
-          if [ -z "$FFMPEG_BIN" ]; then
-            echo "ERROR: ffmpeg 二进制未找到"
-            exit 1
-          fi
-          cp "$FFMPEG_BIN" app/src/main/assets/ffmpeg_arm64
+          set -e
+          FFMPEG_VER=7.1
+          ANDROID_API=24
+          NDK_ROOT="$ANDROID_SDK_ROOT/ndk/27.0.12077973"
+          TOOLCHAIN="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64"
+          export CC="$TOOLCHAIN/bin/aarch64-linux-android${ANDROID_API}-clang"
+          export CXX="$TOOLCHAIN/bin/aarch64-linux-android${ANDROID_API}-clang++"
+          export STRIP="$TOOLCHAIN/bin/llvm-strip"
+          export AR="$TOOLCHAIN/bin/llvm-ar"
+          export RANLIB="$TOOLCHAIN/bin/llvm-ranlib"
+          export PKG_CONFIG=""
+
+          cd /tmp
+          curl -fsSL -o ffmpeg.tar.xz "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VER}.tar.xz"
+          tar -xf ffmpeg.tar.xz
+          cd "ffmpeg-${FFMPEG_VER}"
+
+          ./configure \
+            --target-os=android \
+            --arch=arm64 \
+            --cpu=armv8-a \
+            --enable-cross-compile \
+            --cross-prefix=aarch64-linux-android- \
+            --sysroot="$TOOLCHAIN/sysroot" \
+            --prefix=/tmp/ffmpeg-install \
+            --enable-static \
+            --disable-shared \
+            --disable-doc \
+            --disable-debug \
+            --disable-programs \
+            --enable-ffmpeg \
+            --disable-avdevice \
+            --disable-postproc \
+            --disable-everything \
+            --enable-protocol=file,http,https,tcp,tls,crypto,data,pipe \
+            --enable-demuxer=mov,mp4,m4a,3gp,3g2,mj2,flv,matroska,webm,avi,mpegts,hls,playlist,concat,asf,ogg \
+            --enable-muxer=mp4,mov,matroska,webm,avi \
+            --enable-decoder=h264,hevc,aac,mp3,opus,vp8,vp9,vorbis,flac,alac,mpeg4,mpeg2video \
+            --enable-encoder=aac,mpeg4 \
+            --enable-parser=h264,hevc,aac,ac3,mpeg4video,opus,vp8,vp9 \
+            --enable-bsf=aac_adtstoasc,h264_mp4toannexb,hevc_mp4toannexb \
+            --enable-filter=aresample \
+            --extra-cflags="-O3 -fPIC" \
+            --extra-ldflags="-Wl,-Bsymbolic"
+
+          make -j$(nproc)
+          make install
+
+          # 静态链接的 ffmpeg 可执行文件，单文件可直接运行
+          cp /tmp/ffmpeg-install/bin/ffmpeg app/src/main/assets/ffmpeg_arm64
           chmod +x app/src/main/assets/ffmpeg_arm64
           ls -lh app/src/main/assets/ffmpeg_arm64
+          echo "ffmpeg build OK"
 
       - name: Generate Gradle wrapper
         run: |
-          # 确保有 gradlew（首次需用系统 gradle 生成）
           if [ ! -f gradlew ]; then
             gradle wrapper --gradle-version 8.7 --distribution-type bin
           fi
