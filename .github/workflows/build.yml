@@ -46,8 +46,11 @@ jobs:
           set -e
           FFMPEG_VER=7.1
           ANDROID_API=24
-          NDK_ROOT="$ANDROID_SDK_ROOT/ndk/27.0.12077973"
+          NDK_ROOT=$(ls -d "$ANDROID_SDK_ROOT"/ndk/*/ | head -1)
           TOOLCHAIN="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64"
+          echo "NDK_ROOT=$NDK_ROOT"
+          echo "TOOLCHAIN=$TOOLCHAIN"
+          ls "$TOOLCHAIN/bin/" | grep -E "aarch64.*clang" | head -5
           export PATH="$TOOLCHAIN/bin:$PATH"
           export CC="aarch64-linux-android${ANDROID_API}-clang"
           export CXX="aarch64-linux-android${ANDROID_API}-clang++"
@@ -68,6 +71,10 @@ jobs:
             --arch=arm64 \
             --cpu=armv8-a \
             --enable-cross-compile \
+            --cc="$CC" \
+            --cxx="$CXX" \
+            --ar="$AR" \
+            --strip="$STRIP" \
             --sysroot="$TOOLCHAIN/sysroot" \
             --prefix=/tmp/ffmpeg-install \
             --enable-static \
@@ -88,12 +95,11 @@ jobs:
             --enable-bsf=aac_adtstoasc,h264_mp4toannexb,hevc_mp4toannexb \
             --enable-filter=aresample \
             --extra-cflags="-O3 -fPIC" \
-            --extra-ldflags="-Wl,-Bsymbolic"
+            --extra-ldflags="-Wl,-Bsymbolic" || { echo "=== CONFIG.LOG ==="; cat ffbuild/config.log; exit 1; }
 
-          make -j$(nproc)
+          make -j$(nproc) || { echo "=== MAKE LOG (tail) ==="; tail -50 ffbuild/config.log; exit 1; }
           make install
 
-          # 静态链接的 ffmpeg 可执行文件，单文件可直接运行
           cp /tmp/ffmpeg-install/bin/ffmpeg app/src/main/assets/ffmpeg_arm64
           chmod +x app/src/main/assets/ffmpeg_arm64
           ls -lh app/src/main/assets/ffmpeg_arm64
