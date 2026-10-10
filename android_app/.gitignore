@@ -1,0 +1,25 @@
+# Android
+.gradle/
+build/
+app/build/
+local.properties
+*.iml
+.cxx/
+
+# Python
+__pycache__/
+*.pyc
+chaquopy/
+
+# IDE
+.idea/
+*.swp
+
+# 不提交 ffmpeg 二进制（workflow 自动下载）
+app/src/main/assets/ffmpeg_*
+
+# Gradle wrapper（CI 生成）
+gradle-wrapper.jar
+gradlew
+gradlew.bat
+gradle/wrapper/

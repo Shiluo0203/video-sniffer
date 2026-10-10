@@ -1,0 +1,14 @@
+Gradle Wrapper 说明
+==================
+
+本仓库不含 gradle-wrapper.jar（太大）。
+Android Studio 打开此工程时会自动生成。
+
+如果手动命令行打包，先执行：
+  gradle wrapper --gradle-version 8.7
+
+然后：
+  ./gradlew assembleDebug          # 产出 app/build/outputs/apk/debug/app-debug.apk
+  ./gradlew installDebug           # 直接装到连接的设备
+
+Chaquopy 插件要求 Gradle 8.x + AGP 8.x。

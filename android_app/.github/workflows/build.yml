@@ -1,0 +1,80 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'android_app/**'
+      - 'core/**'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:        # 支持手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android_app
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Chaquopy 需要 commit 历史判断 license
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Download ffmpeg for Android (arm64)
+        run: |
+          mkdir -p app/src/main/assets
+          # BtbN 自动构建：ffmpeg-master-android-clang-aarch64
+          # 静态链接，单文件，约 70MB
+          curl -fsSL -o /tmp/ffmpeg.tar.xz \
+            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-android-clang-aarch64.tar.xz"
+          tar -xJf /tmp/ffmpeg.tar.xz -C /tmp
+          # 找到 ffmpeg 二进制（路径形如 ffmpeg-master-.../bin/ffmpeg）
+          FFMPEG_BIN=$(find /tmp -name ffmpeg -type f | head -1)
+          if [ -z "$FFMPEG_BIN" ]; then
+            echo "ERROR: ffmpeg 二进制未找到"
+            exit 1
+          fi
+          cp "$FFMPEG_BIN" app/src/main/assets/ffmpeg_arm64
+          chmod +x app/src/main/assets/ffmpeg_arm64
+          ls -lh app/src/main/assets/ffmpeg_arm64
+
+      - name: Generate Gradle wrapper
+        run: |
+          # 确保有 gradlew（首次需用系统 gradle 生成）
+          if [ ! -f gradlew ]; then
+            gradle wrapper --gradle-version 8.7 --distribution-type bin
+          fi
+          chmod +x gradlew
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoSniffer-debug
+          path: android_app/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30

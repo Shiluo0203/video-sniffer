@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Windows 构建产物
+build/
+dist/
+视频悬浮嗅探/dist/
+视频悬浮嗅探/build/
+视频悬浮嗅探/FloatSniffer.spec
+*.exe
+*.toc
+*.bin
+*.pyz
+
+# Android 构建产物
+android_app/.gradle/
+android_app/build/
+android_app/app/build/
+android_app/local.properties
+android_app/gradle/
+android_app/gradlew
+android_app/gradlew.bat
+android_app/gradle-wrapper.jar
+android_app/**/.cxx/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# 临时测试文件
+视频悬浮嗅探/_test_*.py
+
+# 日志
+*.log

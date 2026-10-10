@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#E61F2430"
+    android:padding="12dp">
+
+    <!-- 顶部：拖拽条 + 关闭 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="20dp"
+            android:layout_weight="1"
+            android:background="#3a4152" />
+
+        <TextView
+            android:id="@+id/float_close_btn"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:gravity="center"
+            android:text="×"
+            android:textSize="18sp"
+            android:textColor="#e6e9ef" />
+    </LinearLayout>
+
+    <!-- 识别到的链接标题 -->
+    <TextView
+        android:id="@+id/float_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="等待链接：复制或分享视频链接"
+        android:textColor="#e6e9ef"
+        android:textSize="13sp"
+        android:layout_marginTop="8dp"
+        android:maxLines="3"
+        android:ellipsize="end" />
+
+    <!-- 进度条 -->
+    <ProgressBar
+        android:id="@+id/float_progress"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="16dp"
+        android:layout_marginTop="6dp"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@android:drawable/progress_horizontal" />
+
+    <TextView
+        android:id="@+id/float_progress_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#9aa3b5"
+        android:textSize="11sp" />
+
+    <!-- 下载按钮 -->
+    <TextView
+        android:id="@+id/float_download_btn"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="8dp"
+        android:background="#3d6fd6"
+        android:gravity="center"
+        android:text="立即下载"
+        android:textColor="white"
+        android:textSize="14sp"
+        android:enabled="false" />
+
+</LinearLayout>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">视频悬浮嗅探</string>
+    <string name="main_hint">复制视频链接或从其他 App 点分享，
+        悬浮窗会自动识别。\n\n使用前请授予悬浮窗权限。</string>
+</resources>
