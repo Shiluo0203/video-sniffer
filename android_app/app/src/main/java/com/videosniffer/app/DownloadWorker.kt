@@ -72,15 +72,14 @@ object DownloadWorker {
         val progressFile = File(ctx.cacheDir, "dl_progress.json")
         progressFile.writeText("""{"pct":0,"msg":"开始下载…"}""")
 
-        // 通过环境变量把进度文件路径传给 Python
-        bridge["CHAQUOPY_PROGRESS_FILE"] = progressFile.absolutePath
+        // 进度文件路径作为参数传给 Python（dl_bridge.download 内部写 os.environ）
 
         // 起后台线程跑 download（阻塞），主逻辑轮询进度文件
         var downloadDone = false
         var downloadError: Exception? = null
         val thread = Thread {
             try {
-                bridge.callAttr("download", url, outDir, formatId)
+                bridge.callAttr("download", url, outDir, formatId, "", progressFile.absolutePath)
             } catch (e: Exception) {
                 downloadError = e
             } finally {
