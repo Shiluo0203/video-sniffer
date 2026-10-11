@@ -193,8 +193,10 @@ class MainActivity : AppCompatActivity() {
             else -> "ffmpeg：… 待部署"
         }
 
-        mainHint.text = "提示：刷抖音时点「分享 → 复制链接」，悬浮窗会自动识别；" +
-            "或者直接「分享 → 视频悬浮嗅探」。在播放页面本身不会自动嗅探（网页版无此限制）。"
+        mainHint.text = "下载保存位置：相册 → Movies/VideoSniffer，下载完成会弹通知（点击播放）。\n" +
+            "注意：Android 10+ 后台读剪贴板被系统禁止，自动识别可能不触发——" +
+            "在抖音里「分享 → 复制链接」后，点悬浮窗上的 ↻ 即可读取；" +
+            "也可以直接「分享 → 视频悬浮嗅探」。无法读取时回主页用「粘贴剪贴板」。"
     }
 
     @Suppress("DEPRECATION")
