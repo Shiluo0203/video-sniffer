@@ -45,16 +45,6 @@ chaquopy {
     defaultConfig {
         version = "3.11"           // CPython 版本
 
-        // 把项目根的 core/ 目录加入 Python 源码，让 dl_bridge 能 import core
-        // 路径相对于本文件所在目录（app/）
-        sourceSets {
-            create("main") {
-                srcDir("../../core")
-                // 排除 Windows 专属和不需要的文件
-                exclude("ffmpeg_locator.py")    // 用 ffmpeg_locator_android 替代
-            }
-        }
-
         pip {
             // yt-dlp 本体（会自动带 websockets 等小依赖）
             install("yt-dlp==2024.8.6")
@@ -63,5 +53,37 @@ chaquopy {
         }
     }
 
+    // 注意：sourceSets 必须在 chaquopy 顶层（不是 defaultConfig 里），
+    // 且 "main" 已内置存在，只能 getByName 不能 create
+    sourceSets {
+        getByName("main") {
+            srcDir(layout.buildDirectory.dir("generated/pythonSrc"))
+        }
+    }
+
     productFlavors { }
+}
+
+// 把仓库根的 core/ 同步成 Python 包 core.*（保留包结构，dl_bridge 才能
+// `from core import ytdlp_service`）。排除 Windows 版 ffmpeg_locator.py，
+// 由 dl_bridge 运行时注入 ffmpeg_locator_android 替代。
+val syncCorePython = tasks.register<Sync>("syncCorePython") {
+    from(file("../../core")) {
+        exclude("ffmpeg_locator.py")
+        exclude("__pycache__/**")
+        exclude("*.pyc")
+    }
+    into(layout.buildDirectory.dir("generated/pythonSrc/core"))
+    doLast {
+        // 确保 core 是可导入包
+        val initFile = layout.buildDirectory.file(
+            "generated/pythonSrc/core/__init__.py").get().asFile
+        if (!initFile.exists()) {
+            initFile.writeText("# generated: make 'core' an importable package\n")
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.named("preBuild") { dependsOn(syncCorePython) }
 }
