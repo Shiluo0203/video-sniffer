@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 下载输出目录：Movies/VideoSniffer -->
+    <external-path name="movies" path="Movies/VideoSniffer/" />
+    <!-- 兜底：应用私有目录 -->
+    <files-path name="files" path="." />
+</paths>
