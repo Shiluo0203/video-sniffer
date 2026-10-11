@@ -112,13 +112,18 @@ class FloatService : Service() {
     // ---------- 剪贴板 ----------
 
     private fun onClipboardChanged() {
+        checkClipboard(dedupe = true)
+    }
+
+    /** 读取剪贴板并识别视频链接。dedupe=true 时跳过与当前相同的链接 */
+    private fun checkClipboard(dedupe: Boolean) {
         if (!clipboard.hasPrimaryClip()) return
         val clip = clipboard.primaryClip ?: return
         if (clip.description?.getMimeType(0) != ClipDescription.MIMETYPE_TEXT_PLAIN) return
         val text = clip.getItemAt(0).coerceToText(this).toString()
         // 过滤视频链接
         val url = extractUrl(text) ?: return
-        if (url == currentUrl) return   // 重复不刷新
+        if (dedupe && url == currentUrl) return   // 重复不刷新
         showUrl(url)
     }
 
@@ -174,6 +179,14 @@ class FloatService : Service() {
 
         view.findViewById<View>(R.id.float_close_btn).setOnClickListener {
             stopSelf()
+        }
+
+        // 手动刷新剪贴板（绕过去重，强制重读）
+        view.findViewById<View>(R.id.float_refresh_btn).setOnClickListener {
+            checkClipboard(dedupe = false)
+            if (currentUrl.isEmpty()) {
+                titleText?.text = "剪贴板里没有视频链接\n请先复制链接再点 ↻"
+            }
         }
 
         // 拖拽

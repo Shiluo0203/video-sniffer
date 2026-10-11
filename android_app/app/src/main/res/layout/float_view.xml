@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="280dp"
+    android:layout_width="200dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="#E61F2430"
-    android:padding="12dp">
+    android:padding="8dp">
 
-    <!-- 顶部：拖拽条 + 关闭 -->
+    <!-- 顶部：拖拽条 + 刷新 + 关闭 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -15,17 +15,26 @@
 
         <View
             android:layout_width="0dp"
-            android:layout_height="20dp"
+            android:layout_height="14dp"
             android:layout_weight="1"
             android:background="#3a4152" />
 
         <TextView
+            android:id="@+id/float_refresh_btn"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:gravity="center"
+            android:text="↻"
+            android:textSize="15sp"
+            android:textColor="#9aa3b5" />
+
+        <TextView
             android:id="@+id/float_close_btn"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:gravity="center"
             android:text="×"
-            android:textSize="18sp"
+            android:textSize="16sp"
             android:textColor="#e6e9ef" />
     </LinearLayout>
 
@@ -34,11 +43,11 @@
         android:id="@+id/float_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="等待链接：复制或分享视频链接"
+        android:text="复制视频链接后点 ↻"
         android:textColor="#e6e9ef"
-        android:textSize="13sp"
-        android:layout_marginTop="8dp"
-        android:maxLines="3"
+        android:textSize="12sp"
+        android:layout_marginTop="6dp"
+        android:maxLines="2"
         android:ellipsize="end" />
 
     <!-- 进度条 -->
@@ -46,8 +55,8 @@
         android:id="@+id/float_progress"
         style="@android:style/Widget.ProgressBar.Horizontal"
         android:layout_width="match_parent"
-        android:layout_height="16dp"
-        android:layout_marginTop="6dp"
+        android:layout_height="12dp"
+        android:layout_marginTop="4dp"
         android:max="100"
         android:progress="0"
         android:progressDrawable="@android:drawable/progress_horizontal" />
@@ -58,19 +67,19 @@
         android:layout_height="wrap_content"
         android:text=""
         android:textColor="#9aa3b5"
-        android:textSize="11sp" />
+        android:textSize="10sp" />
 
     <!-- 下载按钮 -->
     <TextView
         android:id="@+id/float_download_btn"
         android:layout_width="match_parent"
-        android:layout_height="36dp"
-        android:layout_marginTop="8dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="6dp"
         android:background="#3d6fd6"
         android:gravity="center"
         android:text="立即下载"
         android:textColor="#FFFFFF"
-        android:textSize="14sp"
+        android:textSize="13sp"
         android:enabled="false" />
 
 </LinearLayout>
