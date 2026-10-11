@@ -43,7 +43,7 @@
         android:id="@+id/float_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="复制视频链接后点 ↻"
+        android:text="✓ 服务运行中\n复制视频链接后点 ↻ 读取"
         android:textColor="#e6e9ef"
         android:textSize="12sp"
         android:layout_marginTop="6dp"
