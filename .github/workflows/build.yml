@@ -107,15 +107,16 @@ jobs:
           ls -lh "$ASSETS_DIR/ffmpeg_arm64"
           echo "ffmpeg build OK"
 
-      - name: Generate Gradle wrapper
+      - name: Set up Gradle 8.7
         run: |
-          if [ ! -f gradlew ]; then
-            gradle wrapper --gradle-version 8.7 --distribution-type bin
-          fi
-          chmod +x gradlew
+          cd /tmp
+          curl -fsSL -o gradle.zip "https://services.gradle.org/distributions/gradle-8.7-bin.zip"
+          unzip -q gradle.zip
+          echo "/tmp/gradle-8.7/bin" >> "$GITHUB_PATH"
+          gradle --version | head -6
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: gradle assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
