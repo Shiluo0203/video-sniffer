@@ -18,12 +18,12 @@ datas += _d
 binaries += _b
 hiddenimports += _h
 
-# 内嵌 ffmpeg（ffprobe 已不再需要，时长探测改用 ffmpeg -i）
-binaries += [("bin/ffmpeg.exe", "bin")]
+# 内嵌 ffmpeg（位于项目根 bin/，直链下载/音视频合并所需）
+binaries += [(os.path.join(SPECPATH, "..", "bin", "ffmpeg.exe"), "bin")]
 
 a = Analysis(
     ["main.py"],
-    pathex=[],
+    pathex=[os.path.abspath(os.path.join(SPECPATH, ".."))],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,

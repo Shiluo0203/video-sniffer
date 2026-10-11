@@ -8,10 +8,12 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QApplication
 
-# 确保可以导入 core / ui
-project_root = Path(__file__).resolve().parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+# 确保可以导入 core（项目根共享）与 ui（本目录）
+_tool_dir = Path(__file__).resolve().parent
+project_root = _tool_dir.parent
+for _p in (str(project_root), str(_tool_dir)):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 
 def run_selftest() -> int:
