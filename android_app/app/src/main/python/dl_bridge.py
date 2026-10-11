@@ -60,16 +60,19 @@ def _write_progress(pct: int, msg: str) -> None:
 
 
 def download(url: str, out_dir: str, format_id: str,
-             cookie_file: str = "") -> str:
-    """下载视频（阻塞调用）。进度写到 CHAQUOPY_PROGRESS_FILE 供 Kotlin 轮询。
+             cookie_file: str = "", progress_file: str = "") -> str:
+    """下载视频（阻塞调用）。进度写到 progress_file 供 Kotlin 轮询。
 
-    Kotlin 侧启动前设好环境变量：
-        bridge["CHAQUOPY_PROGRESS_FILE"] = progressFile.absolutePath
-    （见 DownloadWorker）
+    Kotlin 侧调：
+        bridge.callAttr("download", url, out_dir, format_id, "", progressFile)
+    内部会把 progress_file 写进 os.environ["CHAQUOPY_PROGRESS_FILE"]，
+    _write_progress 从那里读取（见 DownloadWorker）。
 
     返回输出目录。
     """
     import os
+    if progress_file:
+        os.environ["CHAQUOPY_PROGRESS_FILE"] = progress_file
     os.makedirs(out_dir, exist_ok=True)
 
     _write_progress(0, "开始下载…")
