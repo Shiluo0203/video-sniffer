@@ -99,9 +99,16 @@ class FloatService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // 收到分享 URL
-        intent?.getStringExtra(EXTRA_URL)?.let { url ->
-            showUrl(url)
+        // 收到分享/手动发送的文本（可能是整段分享文案，需要提取其中的 URL）
+        intent?.getStringExtra(EXTRA_URL)?.let { raw ->
+            val url = extractUrl(raw) ?: raw.trim().takeIf { it.startsWith("http") }
+            if (url != null) {
+                showUrl(url)
+            } else {
+                android.os.Handler(mainLooper).post {
+                    Toast.makeText(this, "未从文本中识别到视频链接", Toast.LENGTH_LONG).show()
+                }
+            }
         }
         return START_STICKY
     }
@@ -191,8 +198,9 @@ class FloatService : Service() {
     // ---------- 悬浮窗 ----------
 
     private fun showFloatView() {
+        // 显式指定窗口宽度（部分国产 ROM 上 WRAP_CONTENT 悬浮窗会塌缩成竖条）
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            dp(208),
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
@@ -243,6 +251,7 @@ class FloatService : Service() {
             downloadBtn?.text = "立即下载"
             progressText?.text = ""
             progressBar?.progress = 0
+            Toast.makeText(this, "已识别视频链接，点悬浮窗「立即下载」", Toast.LENGTH_SHORT).show()
         }
     }
 
