@@ -12,7 +12,10 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.content.res.Resources
 import android.graphics.PixelFormat
+import android.media.MediaScannerConnection
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.os.IBinder
 import android.provider.Settings
 import android.util.TypedValue
@@ -26,6 +29,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -33,6 +37,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.regex.Pattern
 
 /**
@@ -54,6 +59,7 @@ class FloatService : Service() {
 
     private lateinit var windowManager: WindowManager
     private var floatView: View? = null
+    private var windowParams: WindowManager.LayoutParams? = null
     private lateinit var clipboard: ClipboardManager
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var downloadJob: Job? = null
@@ -115,16 +121,49 @@ class FloatService : Service() {
         checkClipboard(dedupe = true)
     }
 
-    /** 读取剪贴板并识别视频链接。dedupe=true 时跳过与当前相同的链接 */
-    private fun checkClipboard(dedupe: Boolean) {
-        if (!clipboard.hasPrimaryClip()) return
-        val clip = clipboard.primaryClip ?: return
-        if (clip.description?.getMimeType(0) != ClipDescription.MIMETYPE_TEXT_PLAIN) return
+    /** 读取剪贴板并识别视频链接。dedupe=true 时跳过与当前相同的链接。
+     *  @return 是否识别到视频链接 */
+    private fun checkClipboard(dedupe: Boolean): Boolean {
+        if (!clipboard.hasPrimaryClip()) return false
+        val clip = clipboard.primaryClip ?: return false
+        if (clip.description?.getMimeType(0) != ClipDescription.MIMETYPE_TEXT_PLAIN) return false
         val text = clip.getItemAt(0).coerceToText(this).toString()
         // 过滤视频链接
-        val url = extractUrl(text) ?: return
-        if (dedupe && url == currentUrl) return   // 重复不刷新
+        val url = extractUrl(text) ?: return false
+        if (dedupe && url == currentUrl) return true   // 重复不刷新
         showUrl(url)
+        return true
+    }
+
+    /**
+     * Android 10+ 后台服务读不到剪贴板（只有获得窗口焦点的应用才能读）。
+     * 点 ↻ 时临时去掉 NOT_FOCUSABLE 让悬浮窗拿到焦点 → 合法读取 → 再恢复。
+     * 读不到视频链接时把剪贴板原文显示出来，方便诊断。
+     */
+    private fun readClipboardFocused() {
+        val view = floatView ?: return
+        val p = windowParams ?: return
+        try {
+            p.flags = p.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+            windowManager.updateViewLayout(view, p)
+            view.requestFocus()
+        } catch (_: Exception) {}
+
+        val found = checkClipboard(dedupe = false)
+
+        try {
+            p.flags = p.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+            windowManager.updateViewLayout(view, p)
+        } catch (_: Exception) {}
+
+        if (!found) {
+            val raw = if (clipboard.hasPrimaryClip())
+                clipboard.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString() else null
+            titleText?.text = if (raw.isNullOrBlank())
+                "读取不到剪贴板内容\n请回到主页用「粘贴剪贴板」测试"
+            else
+                "剪贴板没有视频链接：\n${raw.take(80)}"
+        }
     }
 
     private fun extractUrl(text: String): String? {
@@ -162,6 +201,7 @@ class FloatService : Service() {
         params.gravity = Gravity.TOP or Gravity.START
         params.x = dp(16)
         params.y = dp(80)
+        windowParams = params
 
         val view = LayoutInflater.from(this).inflate(R.layout.float_view, null, false)
         floatView = view
@@ -181,18 +221,18 @@ class FloatService : Service() {
             stopSelf()
         }
 
-        // 手动刷新剪贴板（绕过去重，强制重读）
+        // 手动刷新剪贴板（临时获取焦点绕过 Android 10+ 后台剪贴板限制）
         view.findViewById<View>(R.id.float_refresh_btn).setOnClickListener {
-            checkClipboard(dedupe = false)
-            if (currentUrl.isEmpty()) {
-                titleText?.text = "剪贴板里没有视频链接\n请先复制链接再点 ↻"
-            }
+            readClipboardFocused()
         }
 
         // 拖拽
         view.setOnTouchListener(DragHandler(windowManager, view, params))
 
         windowManager.addView(view, params)
+
+        // 启动即显示状态文字（同时验证悬浮窗渲染正常）
+        titleText?.text = "✓ 悬浮嗅探运行中\n复制视频链接后点 ↻ 读取"
     }
 
     private fun showUrl(url: String) {
@@ -219,6 +259,19 @@ class FloatService : Service() {
                         progressText?.text = msg
                     }
                 }
+                // 找到最新下载的文件，扫描进相册 + 发完成通知
+                val dir = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
+                    "VideoSniffer"
+                )
+                val newest = dir.listFiles()?.maxByOrNull { it.lastModified() }
+                if (newest != null && newest.exists()) {
+                    MediaScannerConnection.scanFile(
+                        this@FloatService, arrayOf(newest.absolutePath),
+                        arrayOf("video/*"), null
+                    )
+                }
+                notifyResult("下载完成", result, newest)
                 runOnUiThread {
                     progressBar?.progress = 100
                     progressText?.text = result
@@ -226,6 +279,7 @@ class FloatService : Service() {
                     downloadBtn?.isEnabled = true
                 }
             } catch (e: Exception) {
+                notifyResult("下载失败", e.message ?: "未知错误", null)
                 runOnUiThread {
                     progressText?.text = "失败：${e.message}"
                     downloadBtn?.text = "重试"
@@ -235,6 +289,41 @@ class FloatService : Service() {
                 downloadJob = null
             }
         }
+    }
+
+    /** 下载结果通知：完成时点击可播放视频 */
+    private fun notifyResult(title: String, text: String, file: File?) {
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val pi = if (file != null && file.exists()) {
+            val uri = FileProvider.getUriForFile(
+                this, "$packageName.provider", file
+            )
+            PendingIntent.getActivity(
+                this, 2,
+                Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "video/*")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                },
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+        } else {
+            PendingIntent.getActivity(
+                this, 0,
+                Intent(this, MainActivity::class.java),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+        }
+        val notif = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(text.take(120))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .build()
+        try {
+            nm.notify((System.currentTimeMillis() and 0x7FFFFFFF).toInt(), notif)
+        } catch (_: Exception) {}
     }
 
     // ---------- 工具 ----------
