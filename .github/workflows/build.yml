@@ -100,9 +100,11 @@ jobs:
           make -j$(nproc) || { echo "=== MAKE LOG (tail) ==="; tail -50 ffbuild/config.log; exit 1; }
           make install
 
-          cp /tmp/ffmpeg-install/bin/ffmpeg app/src/main/assets/ffmpeg_arm64
-          chmod +x app/src/main/assets/ffmpeg_arm64
-          ls -lh app/src/main/assets/ffmpeg_arm64
+          ASSETS_DIR="$GITHUB_WORKSPACE/android_app/app/src/main/assets"
+          mkdir -p "$ASSETS_DIR"
+          cp /tmp/ffmpeg-install/bin/ffmpeg "$ASSETS_DIR/ffmpeg_arm64"
+          chmod +x "$ASSETS_DIR/ffmpeg_arm64"
+          ls -lh "$ASSETS_DIR/ffmpeg_arm64"
           echo "ffmpeg build OK"
 
       - name: Generate Gradle wrapper
