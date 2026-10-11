@@ -9,6 +9,7 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.content.res.Resources
 import android.graphics.PixelFormat
 import android.os.Build
@@ -16,6 +17,7 @@ import android.os.IBinder
 import android.provider.Settings
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -71,7 +73,15 @@ class FloatService : Service() {
         clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
 
         createNotificationChannel()
-        startForeground(NOTIF_ID, buildNotification("悬浮嗅探运行中"))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // Android 14+ 要求显式传 FGS 类型，否则可能抛 MissingForegroundServiceTypeException
+            startForeground(
+                NOTIF_ID, buildNotification("悬浮嗅探运行中"),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            startForeground(NOTIF_ID, buildNotification("悬浮嗅探运行中"))
+        }
 
         // 剪贴板监听
         clipboard.addPrimaryClipChangedListener { onClipboardChanged() }
@@ -148,7 +158,7 @@ class FloatService : Service() {
         params.x = dp(16)
         params.y = dp(80)
 
-        val view = layoutInflater.inflate(R.layout.float_view, null, false)
+        val view = LayoutInflater.from(this).inflate(R.layout.float_view, null, false)
         floatView = view
 
         titleText = view.findViewById(R.id.float_title)
