@@ -86,8 +86,10 @@ val syncCorePython = tasks.register<Sync>("syncCorePython") {
 
 afterEvaluate {
     // 所有消费 Python 源码的任务（mergeDebugPythonSources 等）都依赖 sync 任务
+    // 注意排除 sync 任务自身，否则自依赖成环
     tasks.matching {
-        it.name.contains("Python") || it.name == "preBuild"
+        it.name != syncCorePython.name &&
+            (it.name.contains("Python") || it.name == "preBuild")
     }.configureEach {
         dependsOn(syncCorePython)
     }
