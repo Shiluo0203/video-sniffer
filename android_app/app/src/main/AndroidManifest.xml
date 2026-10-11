@@ -5,8 +5,8 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- 前台服务：剪贴板监听需要常驻 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <!-- Android 14+ 前台服务类型声明 -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CLIPBOARD" />
+    <!-- Android 14+ 前台服务类型声明（specialUse：悬浮窗+剪贴板监听无专用类型） -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <!-- Android 13+ 通知运行时权限 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- 下载文件写入 -->
@@ -19,7 +19,7 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.VideoSniffer"
@@ -43,10 +43,15 @@
         </activity>
 
         <!-- 悬浮窗 + 剪贴板监听的前台服务 -->
+        <!-- compileSdk 34 没有 clipboard 类型，用 specialUse 并声明子类型说明 -->
         <service
             android:name=".FloatService"
             android:exported="false"
-            android:foregroundServiceType="clipboard" />
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Floating window monitors clipboard for video links" />
+        </service>
     </application>
 
 </manifest>
