@@ -38,3 +38,7 @@ android_app/**/.cxx/
 
 # 日志
 *.log
+
+# SSH deploy key（本地推送用，严禁提交）
+.ssh_ci_key*
+.ssh_ci_known_hosts
