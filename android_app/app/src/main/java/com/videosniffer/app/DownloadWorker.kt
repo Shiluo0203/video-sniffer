@@ -235,6 +235,6 @@ object DownloadWorker {
 
         downloadError?.let { throw it }
         progressCb(100, "完成")
-        "完成：$title"
+        return "完成：$title"
     }
 }
